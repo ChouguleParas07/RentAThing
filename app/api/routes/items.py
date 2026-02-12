@@ -5,9 +5,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from redis.asyncio import Redis
 
 from app.api.deps.auth import require_roles
 from app.db.session import get_db_session
+from app.db.redis import get_redis
 from app.models.enums import UserRole
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.item import ItemCreate, ItemListResponse, ItemRead, ItemUpdate
@@ -17,8 +19,11 @@ from app.services.item_service import ItemService
 router = APIRouter(prefix="/items", tags=["items"])
 
 
-def get_item_service(db: Annotated[AsyncSession, Depends(get_db_session)]) -> ItemService:
-    return ItemService(db)
+def get_item_service(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis)],
+) -> ItemService:
+    return ItemService(db, redis)
 
 
 @router.post(
