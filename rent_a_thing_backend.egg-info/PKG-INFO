@@ -1,0 +1,65 @@
+Metadata-Version: 2.4
+Name: rent-a-thing-backend
+Version: 0.1.0
+Summary: Rent-a-Thing — Hyperlocal Rental Marketplace backend (FastAPI, PostgreSQL, Redis, Celery).
+Author: Rent-a-Thing Team
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: pydantic>=2.7.0
+Requires-Dist: pydantic-settings>=2.2.0
+Requires-Dist: SQLAlchemy[asyncio]>=2.0.30
+Requires-Dist: asyncpg>=0.29.0
+Requires-Dist: alembic>=1.13.0
+Requires-Dist: redis>=5.0.0
+Requires-Dist: celery[redis]>=5.3.0
+Requires-Dist: python-jose[cryptography]>=3.3.0
+Requires-Dist: passlib[bcrypt]>=1.7.4
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: email-validator>=2.1.0
+Requires-Dist: orjson>=3.10.0
+Requires-Dist: structlog>=24.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+Requires-Dist: httpx>=0.27.0; extra == "dev"
+Requires-Dist: ruff>=0.6.0; extra == "dev"
+Requires-Dist: mypy>=1.10.0; extra == "dev"
+Requires-Dist: types-redis; extra == "dev"
+Requires-Dist: types-python-jose; extra == "dev"
+
+## Rent-a-Thing — Hyperlocal Rental Marketplace (Backend)
+
+Backend service for a hyperlocal rental marketplace built with FastAPI, PostgreSQL, Redis, and Celery using a clean, layered architecture.
+
+### Tech stack
+
+- FastAPI (async)
+- PostgreSQL + SQLAlchemy 2.0 async
+- Redis
+- Celery
+- Pydantic v2
+- Docker / docker-compose
+
+### High-level layout
+
+- `app/` — application code (API, services, repositories, models, etc.)
+- `app/api/` — FastAPI routers and dependencies
+- `app/core/` — configuration, security, middleware, logging
+- `app/models/` — SQLAlchemy ORM models
+- `app/schemas/` — Pydantic request/response models
+- `app/repositories/` — data access layer
+- `app/services/` — business logic
+- `app/db/` — DB session handling and migrations wiring
+- `app/tasks/` — Celery tasks
+- `app/utils/` — helpers and shared utilities
+
+### Running locally (overview)
+
+- Copy `.env.example` to `.env` and adjust values.
+- Install dependencies using `pip` with `pyproject.toml` or `requirements.txt`.
+- Run services via `docker-compose up`.
+
+Detailed commands will be added as we progress through the phases.
+
