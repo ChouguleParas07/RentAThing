@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps.auth import get_current_active_user, oauth2_scheme
+from app.api.deps.runtime_limits import rate_limit_login
 from app.db.redis import get_redis
 from app.db.session import get_db_session
 from app.schemas.auth import AuthenticatedUser, LoginRequest, RefreshTokenRequest, TokenPair
@@ -37,7 +38,7 @@ async def register_user(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login", response_model=TokenPair, dependencies=[Depends(rate_limit_login)])
 async def login(
     credentials: LoginRequest,
     auth_service: Annotated[AuthService, Depends(get_auth_service)],

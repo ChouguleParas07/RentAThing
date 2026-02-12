@@ -3,11 +3,14 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from redis.asyncio import Redis
 
 from app.api.deps.auth import get_current_active_user
+from app.api.deps.runtime_limits import rate_limit_booking_create
 from app.db.session import get_db_session
+from app.db.redis import get_redis
 from app.models.enums import BookingStatus, UserRole
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.booking import BookingCreate, BookingListResponse, BookingRead
@@ -17,18 +20,31 @@ from app.services.booking_service import BookingService
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
-def get_booking_service(db: Annotated[AsyncSession, Depends(get_db_session)]) -> BookingService:
-    return BookingService(db)
+def get_booking_service(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    redis: Annotated[Redis, Depends(get_redis)],
+) -> BookingService:
+    return BookingService(db, redis)
 
 
-@router.post("", response_model=BookingRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=BookingRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit_booking_create)],
+)
 async def create_booking(
     payload: BookingCreate,
     current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
     service: Annotated[BookingService, Depends(get_booking_service)],
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> BookingRead:
     try:
-        return await service.create_booking(renter_id=current_user.id, payload=payload)
+        return await service.create_booking(
+            renter_id=current_user.id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
     except (ValueError, PermissionError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 

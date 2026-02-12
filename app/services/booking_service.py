@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from uuid import UUID
 
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import BookingStatus, UserRole
@@ -16,8 +17,9 @@ from app.services.escrow_service import EscrowService
 class BookingService:
     """Business logic for bookings and availability."""
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession, redis: Redis | None = None) -> None:
         self.db = db
+        self.redis = redis
         self.bookings = BookingRepository(db)
         self.items = ItemRepository(db)
         self.escrow = EscrowService(db)
@@ -48,7 +50,17 @@ class BookingService:
         self,
         renter_id: UUID,
         payload: BookingCreate,
+        idempotency_key: str | None = None,
     ) -> BookingRead:
+        # Idempotency: if key is provided and we have a stored booking, return it
+        if self.redis is not None and idempotency_key:
+            cache_key = f"booking:idempotency:{idempotency_key}"
+            existing_id = await self.redis.get(cache_key)
+            if existing_id:
+                existing = await self.bookings.get_by_id(UUID(existing_id))
+                if existing:
+                    return BookingRead.model_validate(existing)
+
         item = await self.items.get_by_id(payload.item_id)
         if not item:
             raise ValueError("Item not found")
@@ -84,6 +96,11 @@ class BookingService:
         else:
             await self.db.commit()
             await self.db.refresh(booking)
+
+        # Store idempotency mapping
+        if self.redis is not None and idempotency_key:
+            cache_key = f"booking:idempotency:{idempotency_key}"
+            await self.redis.set(cache_key, str(booking.id), ex=600)
 
         return BookingRead.model_validate(booking)
 
