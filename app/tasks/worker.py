@@ -19,6 +19,11 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    include=[
+        "app.tasks.worker",
+        "app.tasks.email_tasks",
+        "app.tasks.booking_tasks",
+    ],
 )
 
 

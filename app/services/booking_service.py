@@ -12,6 +12,7 @@ from app.repositories.booking_repository import BookingRepository
 from app.repositories.item_repository import ItemRepository
 from app.schemas.booking import BookingCreate, BookingListResponse, BookingRead
 from app.services.escrow_service import EscrowService
+from app.tasks.booking_tasks import auto_release_deposit, send_booking_created_email, send_booking_start_reminder
 
 
 class BookingService:
@@ -102,6 +103,12 @@ class BookingService:
             cache_key = f"booking:idempotency:{idempotency_key}"
             await self.redis.set(cache_key, str(booking.id), ex=600)
 
+        # Fire-and-forget background tasks
+        send_booking_created_email.delay(str(booking.id))
+        # Schedule a reminder shortly before the booking starts (e.g. 1 hour)
+        countdown_seconds = max(0, int((payload.start_date - payload.start_date).days * 86400 - 3600))
+        send_booking_start_reminder.apply_async(args=[str(booking.id)], countdown=countdown_seconds)
+
         return BookingRead.model_validate(booking)
 
     async def list_bookings_for_renter(
@@ -176,5 +183,11 @@ class BookingService:
         booking.status = new_status
         await self.db.commit()
         await self.db.refresh(booking)
+
+        # When booking is completed, schedule automatic deposit release processing
+        if booking.status == BookingStatus.COMPLETED:
+            # e.g. auto-release after 24h if no disputes
+            auto_release_deposit.apply_async(args=[str(booking.id)], countdown=24 * 3600)
+
         return BookingRead.model_validate(booking)
 
