@@ -30,5 +30,5 @@ async def get_redis() -> AsyncIterator[Redis]:
     finally:
         # We do not close the global client per-request; connection pooling is handled internally.
         # This function mainly exists to keep a consistent DI pattern.
-        return
+        pass
 

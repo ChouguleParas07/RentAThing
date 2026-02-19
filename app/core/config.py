@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     celery_broker_url: AnyUrl = Field(default="redis://redis:6379/1", alias="CELERY_BROKER_URL")
     celery_result_backend: AnyUrl = Field(default="redis://redis:6379/2", alias="CELERY_RESULT_BACKEND")
 
+    # CORS (comma-separated origins, e.g. "https://app.example.com,https://admin.example.com")
+    cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
+
 
 @lru_cache
 def get_settings() -> Settings:

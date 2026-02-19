@@ -26,9 +26,13 @@ Backend service for a hyperlocal rental marketplace built with FastAPI, PostgreS
 
 ### Running locally (overview)
 
-- Copy `.env.example` to `.env` and adjust values.
-- Install dependencies using `pip` with `pyproject.toml` or `requirements.txt`.
-- Run services via `docker-compose up`.
+- Copy `.env.example` to `.env` and set `SECRET_KEY` (and adjust DB/Redis if needed).
+- Install dependencies: `pip install .[dev]`
+- Run API: `uvicorn app.main:app --reload`
+- Open the simple frontend: **http://localhost:8000/app/**
+- Or run full stack: `docker-compose up`
 
-Detailed commands will be added as we progress through the phases.
+### Frontend
+
+A minimal frontend lives in `frontend/` (vanilla HTML/CSS/JS, no build). It is served by the API at `/app` so you can use the app at **http://localhost:8000/app/** without CORS. See `frontend/README.md` for details.
 

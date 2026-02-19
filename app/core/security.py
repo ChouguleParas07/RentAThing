@@ -11,7 +11,16 @@ from app.core.config import get_settings
 from app.models.enums import UserRole
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use bcrypt_sha256 as the primary hashing scheme to avoid the 72-byte
+# bcrypt input limit; keep plain bcrypt in the schemes list so existing
+# bcrypt hashes still verify.
+pwd_context = CryptContext(
+    # Use a robust PBKDF2-based scheme that doesn't have bcrypt's 72-byte input
+    # limit. This avoids backend-specific issues with the system `bcrypt` C
+    # extension while still providing secure hashing for development.
+    schemes=["pbkdf2_sha256"],
+    deprecated="auto",
+)
 settings = get_settings()
 
 

@@ -28,7 +28,7 @@ class AuthService:
         self.redis = redis
         self.users = UserRepository(db)
 
-    async def register_user(self, data: UserCreate) -> AuthenticatedUser:
+    async def register_user(self, data: UserCreate):
         existing = await self.users.get_by_email(data.email)
         if existing:
             raise ValueError("Email already registered")
@@ -42,7 +42,9 @@ class AuthService:
         )
         await self.db.commit()
         await self.db.refresh(user)
-        return AuthenticatedUser.model_validate(user)
+        # Return the ORM user object so callers can produce the appropriate
+        # response model (e.g. `UserRead` which expects timestamps).
+        return user
 
     async def authenticate_user(self, email: str, password: str) -> tuple[AuthenticatedUser, TokenPair]:
         user = await self.users.get_by_email(email)
