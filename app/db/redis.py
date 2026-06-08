@@ -7,15 +7,12 @@ from redis.asyncio import Redis
 from app.core.config import get_settings
 
 
-settings = get_settings()
-
-
 def get_redis_client() -> Redis:
     """Create a global async Redis client.
 
     We use this for token blacklisting, rate limiting and caching.
     """
-
+    settings = get_settings()
     return Redis.from_url(str(settings.redis_url), encoding="utf-8", decode_responses=True)
 
 

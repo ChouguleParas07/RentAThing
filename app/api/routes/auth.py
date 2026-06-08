@@ -3,15 +3,24 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps.auth import get_current_active_user, oauth2_scheme
+from app.api.deps.auth import bearer_scheme, get_current_active_user
 from app.api.deps.runtime_limits import rate_limit_login
 from app.db.redis import get_redis
 from app.db.session import get_db_session
-from app.schemas.auth import AuthenticatedUser, LoginRequest, RefreshTokenRequest, TokenPair
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.auth import (
+    AuthenticatedUser,
+    LoginRequest,
+    RefreshTokenRequest,
+    RegisterResponse,
+    TokenPair,
+    VerifyEmailRequest,
+    VerifyEmailResponse,
+)
+from app.schemas.user import UserCreate
 from app.services.auth_service import AuthService
 
 
@@ -25,15 +34,24 @@ def get_auth_service(
     return AuthService(db=db, redis=redis)
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(
     data: UserCreate,
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
-) -> UserRead:
+) -> RegisterResponse:
     try:
-        user = await auth_service.register_user(data)
-        # We return UserRead instead of AuthenticatedUser to include timestamps, etc.
-        return UserRead.model_validate(user)
+        return await auth_service.register_user(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/verify-email", response_model=VerifyEmailResponse)
+async def verify_email(
+    body: VerifyEmailRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> VerifyEmailResponse:
+    try:
+        return await auth_service.verify_email(body.email, body.code)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
@@ -67,11 +85,14 @@ async def refresh_tokens(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> None:
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+
     # Blacklist the current access token
-    await auth_service.logout(token)
+    await auth_service.logout(credentials.credentials)
 
 
 @router.get("/me", response_model=AuthenticatedUser)

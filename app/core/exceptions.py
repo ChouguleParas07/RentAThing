@@ -14,6 +14,26 @@ from app.core.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+def _json_safe_value(value: Any) -> Any:
+    """Convert values into JSON-serializable data for API responses."""
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("utf-8", errors="replace")
+    if isinstance(value, dict):
+        return {key: _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe_value(item) for item in value]
+    return value
+
+
+def _message_for_detail(detail: str | list[dict[str, Any]]) -> str:
+    """Derive a short, user-friendly message from an error detail payload."""
+    if isinstance(detail, str):
+        return detail
+    return "Validation failed"
+
+
 def error_response(
     status_code: int,
     detail: str | list[dict[str, Any]],
@@ -21,7 +41,11 @@ def error_response(
     error_code: str | None = None,
 ) -> dict[str, Any]:
     """Standard error body for API responses."""
-    body: dict[str, Any] = {"detail": detail}
+    safe_detail = _json_safe_value(detail)
+    body: dict[str, Any] = {
+        "detail": safe_detail,
+        "message": _message_for_detail(detail),
+    }
     if request_id:
         body["request_id"] = request_id
     if error_code:

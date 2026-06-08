@@ -13,7 +13,7 @@ class Message(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     content: Mapped[str] = mapped_column(Text, nullable=False)
     # For future: map chat threads/conversations explicitly
-    conversation_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    conversation_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     sender_id: Mapped[uuid.UUID] = mapped_column(

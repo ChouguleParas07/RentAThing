@@ -7,15 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from app.core.config import get_settings
 
 
-settings = get_settings()
-
-
 def get_engine() -> AsyncEngine:
     """Create the global async SQLAlchemy engine.
 
     The engine should typically be created once per process.
     """
-
+    settings = get_settings()
     return create_async_engine(
         settings.database_url,
         echo=settings.app_debug,

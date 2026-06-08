@@ -13,7 +13,7 @@ from app.db.session import get_db_session
 from app.db.redis import get_redis
 from app.models.enums import BookingStatus, UserRole
 from app.schemas.auth import AuthenticatedUser
-from app.schemas.booking import BookingCreate, BookingListResponse, BookingRead
+from app.schemas.booking import BookingCreate, BookingListResponse, BookingRead, BookingStatusUpdate
 from app.services.booking_service import BookingService
 
 
@@ -74,7 +74,7 @@ async def list_my_owner_bookings(
 @router.patch("/{booking_id}/status", response_model=BookingRead)
 async def update_booking_status(
     booking_id: UUID,
-    new_status: BookingStatus,
+    payload: BookingStatusUpdate,
     current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
     service: Annotated[BookingService, Depends(get_booking_service)],
 ) -> BookingRead:
@@ -83,7 +83,7 @@ async def update_booking_status(
             booking_id=booking_id,
             actor_id=current_user.id,
             role=current_user.role,
-            new_status=new_status,
+            new_status=payload.status,
         )
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))

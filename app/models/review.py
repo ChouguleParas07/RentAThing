@@ -42,8 +42,5 @@ class Review(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_reviews_rating_range"),
-        Index("ix_reviews_item_id", "item_id"),
-        Index("ix_reviews_author_id", "author_id"),
-        Index("ix_reviews_target_user_id", "target_user_id"),
     )
 

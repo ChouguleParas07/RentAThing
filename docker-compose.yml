@@ -15,8 +15,8 @@ services:
     image: postgres:16-alpine
     container_name: rentathing-db
     environment:
-      POSTGRES_USER: rentathing
-      POSTGRES_PASSWORD: rentathing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "1008"
       POSTGRES_DB: rentathing
     ports:
       - "5433:5432"

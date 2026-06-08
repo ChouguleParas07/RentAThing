@@ -28,6 +28,20 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterResponse(BaseModel):
+    message: str
+    verification_code: str
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class VerifyEmailResponse(BaseModel):
+    message: str
+
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
@@ -35,6 +49,8 @@ class RefreshTokenRequest(BaseModel):
 class AuthenticatedUser(BaseModel):
     id: UUID
     email: EmailStr
+    phone: str
+    city: str
     full_name: str | None
     role: UserRole
     is_active: bool

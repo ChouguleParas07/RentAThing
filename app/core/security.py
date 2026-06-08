@@ -21,7 +21,6 @@ pwd_context = CryptContext(
     schemes=["pbkdf2_sha256"],
     deprecated="auto",
 )
-settings = get_settings()
 
 
 class TokenType:
@@ -60,7 +59,7 @@ def _create_token(
     if additional_claims:
         to_encode.update(additional_claims)
 
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.jwt_algorithm)
+    encoded_jwt = jwt.encode(to_encode, get_settings().secret_key, algorithm=get_settings().jwt_algorithm)
     return encoded_jwt
 
 
@@ -70,7 +69,7 @@ def create_access_token(
     roles: Iterable[UserRole] | None = None,
     additional_claims: dict[str, Any] | None = None,
 ) -> str:
-    expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
+    expires_delta = timedelta(minutes=get_settings().access_token_expire_minutes)
     return _create_token(
         subject=subject,
         token_type=TokenType.ACCESS,
@@ -86,7 +85,7 @@ def create_refresh_token(
     roles: Iterable[UserRole] | None = None,
     additional_claims: dict[str, Any] | None = None,
 ) -> str:
-    expires_delta = timedelta(days=settings.refresh_token_expire_days)
+    expires_delta = timedelta(days=get_settings().refresh_token_expire_days)
     return _create_token(
         subject=subject,
         token_type=TokenType.REFRESH,
@@ -98,7 +97,7 @@ def create_refresh_token(
 
 def decode_token(token: str) -> dict[str, Any]:
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(token, get_settings().secret_key, algorithms=[get_settings().jwt_algorithm])
         return payload
     except JWTError as exc:
         raise ValueError("Invalid token") from exc

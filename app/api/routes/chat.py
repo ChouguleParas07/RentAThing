@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps.auth import get_current_active_user
 from app.core.security import decode_token
-from app.db.session import get_db_session
+from app.db.session import AsyncSessionFactory, get_db_session
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.message import MessageCreate, MessageListResponse, MessageRead
 from app.services.chat_service import ChatService
@@ -102,18 +102,23 @@ async def websocket_endpoint(
     conversation_id: str,
     token: str,
 ) -> None:
+    print(f"[WS] Connection attempt for conversation: {conversation_id} with token: {token[:15]}...", flush=True)
     # Token is expected as query param: ?token=Bearer <jwt> or just <jwt>
     jwt_token = token.replace("Bearer ", "").replace("bearer ", "")
     try:
         payload = await _authenticate_websocket(jwt_token)
-    except HTTPException:
+        print(f"[WS] Auth successful for user: {payload.sub}", flush=True)
+    except Exception as exc:
+        print(f"[WS] Auth failed: {exc}", flush=True)
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
     await manager.connect(conversation_id, websocket)
+    print(f"[WS] Connected and added to manager for conversation: {conversation_id}", flush=True)
     try:
         while True:
             data = await websocket.receive_json()
+            print(f"[WS] Received message data: {data}", flush=True)
             content = data.get("content")
             receiver_id_str = data.get("receiver_id")
             if not content or not receiver_id_str:
@@ -127,16 +132,22 @@ async def websocket_endpoint(
                 continue
 
             # Persist via ChatService
-            async with get_db_session() as db:  # type: ignore
-                service = ChatService(db)  # ephemeral service per message
-                msg = await service.send_message(
-                    sender_id=UUID(payload.sub),
-                    payload=MessageCreate(
-                        receiver_id=receiver_id,
-                        content=content,
-                        conversation_id=conversation_id,
-                    ),
-                )
+            try:
+                async with AsyncSessionFactory() as db:
+                    service = ChatService(db)  # ephemeral service per message
+                    msg = await service.send_message(
+                        sender_id=UUID(payload.sub),
+                        payload=MessageCreate(
+                            receiver_id=receiver_id,
+                            content=content,
+                            conversation_id=conversation_id,
+                        ),
+                    )
+                print(f"[WS] Message persisted: {msg.id}", flush=True)
+            except Exception as db_exc:
+                print(f"[WS] DB persist error: {db_exc}", flush=True)
+                await websocket.send_json({"error": f"Database persist failed: {db_exc}"})
+                continue
 
             await manager.broadcast(
                 conversation_id,
@@ -149,6 +160,15 @@ async def websocket_endpoint(
                     "created_at": msg.created_at.isoformat(),
                 },
             )
+            print(f"[WS] Message broadcasted to conversation: {conversation_id}", flush=True)
     except WebSocketDisconnect:
+        print(f"[WS] Disconnected: {conversation_id}", flush=True)
         manager.disconnect(conversation_id, websocket)
+    except Exception as e:
+        print(f"[WS] Unexpected error in loop: {e}", flush=True)
+        manager.disconnect(conversation_id, websocket)
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 

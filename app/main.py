@@ -73,8 +73,8 @@ def create_app() -> FastAPI:
         """Liveness: is the process up? No dependencies."""
         return {"status": "ok"}
 
-    @app.get("/health/ready", tags=["health"], response_model=None)
-    async def health_readiness() -> dict | JSONResponse:
+    @app.get("/health/ready", tags=["health"])
+    async def health_readiness() -> dict:
         """Readiness: can we serve traffic? Checks DB and Redis."""
         result = await check_readiness()
         if result["status"] != "ok":

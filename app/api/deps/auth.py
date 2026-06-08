@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,13 +16,17 @@ from app.schemas.auth import AuthenticatedUser, TokenPayload
 from app.services.token_blacklist_service import is_token_blacklisted
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def _get_token_payload(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     redis: Annotated[Redis, Depends(get_redis)],
 ) -> TokenPayload:
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+
+    token = credentials.credentials
     try:
         raw_payload = decode_token(token)
         payload = TokenPayload.model_validate(raw_payload)
@@ -64,6 +68,4 @@ def require_roles(*roles: UserRole):
         if user.role not in roles:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return user
-
     return _role_checker
-

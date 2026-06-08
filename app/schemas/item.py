@@ -17,6 +17,7 @@ class ItemBase(BaseModel):
     location_lat: float
     location_lng: float
     location_text: str | None = None
+    images: dict | None = None
     available_from: date | None = None
     available_until: date | None = None
     category_id: UUID | None = None
@@ -34,6 +35,7 @@ class ItemUpdate(BaseModel):
     location_lat: float | None = None
     location_lng: float | None = None
     location_text: str | None = None
+    images: dict | None = None
     available_from: date | None = None
     available_until: date | None = None
     category_id: UUID | None = None
@@ -51,6 +53,7 @@ class ItemRead(BaseModel):
     location_lat: float
     location_lng: float
     location_text: str | None
+    images: dict | None = None
     is_active: bool
     available_from: date | None
     available_until: date | None

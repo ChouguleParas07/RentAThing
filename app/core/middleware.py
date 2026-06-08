@@ -6,12 +6,15 @@ import time
 import uuid
 from typing import Callable
 
+from fastapi import status
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
 import structlog.contextvars
 
+from app.core.exceptions import error_response
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -38,6 +41,24 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 status_code=response.status_code,
                 duration_ms=round(duration_ms, 2),
                 client_host=request.client.host if request.client else None,
+            )
+            response.headers[REQUEST_ID_HEADER] = request_id
+            return response
+        except BaseExceptionGroup as exc:
+            logger.exception(
+                "unhandled_exception_group",
+                path=request.url.path,
+                method=request.method,
+                exc_info=exc,
+            )
+            response = JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content=error_response(
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Internal server error",
+                    request_id=request_id,
+                    error_code="INTERNAL_ERROR",
+                ),
             )
             response.headers[REQUEST_ID_HEADER] = request_id
             return response

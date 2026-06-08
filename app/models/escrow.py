@@ -51,6 +51,5 @@ class EscrowRecord(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "amount_released + damage_fee <= amount_held",
             name="ck_escrow_released_plus_damage_lte_held",
         ),
-        Index("ix_escrow_booking_id", "booking_id"),
     )
 

@@ -45,9 +45,6 @@ class Booking(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("end_date >= start_date", name="ck_bookings_end_after_start"),
         CheckConstraint("total_price >= 0", name="ck_bookings_total_price_non_negative"),
-        Index("ix_bookings_item_id", "item_id"),
-        Index("ix_bookings_renter_id", "renter_id"),
-        Index("ix_bookings_owner_id", "owner_id"),
         Index("ix_bookings_status", "status"),
     )
 

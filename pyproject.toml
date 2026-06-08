@@ -37,6 +37,11 @@ dev = [
     "types-python-jose",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["frontend*", "env*", "**/__pycache__"]
+
 [build-system]
 requires = ["setuptools>=65.0"]
 build-backend = "setuptools.build_meta"

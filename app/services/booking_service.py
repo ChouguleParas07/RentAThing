@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 from uuid import UUID
 
 from redis.asyncio import Redis
@@ -106,7 +106,8 @@ class BookingService:
         # Fire-and-forget background tasks
         send_booking_created_email.delay(str(booking.id))
         # Schedule a reminder shortly before the booking starts (e.g. 1 hour)
-        countdown_seconds = max(0, int((payload.start_date - payload.start_date).days * 86400 - 3600))
+        days_until = (payload.start_date - date.today()).days
+        countdown_seconds = max(0, int(days_until * 86400 - 3600))
         send_booking_start_reminder.apply_async(args=[str(booking.id)], countdown=countdown_seconds)
 
         return BookingRead.model_validate(booking)

@@ -26,16 +26,25 @@ class UserRepository:
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
+    async def get_by_phone(self, phone: str) -> User | None:
+        stmt = select(User).where(User.phone == phone)
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
     async def create_user(
         self,
         *,
         email: str,
+        phone: str,
+        city: str,
         hashed_password: str,
         full_name: str | None,
         role: UserRole,
     ) -> User:
         user = User(
             email=email,
+            phone=phone,
+            city=city,
             hashed_password=hashed_password,
             full_name=full_name,
             role=role,

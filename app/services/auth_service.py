@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from typing import Iterable
 
 from redis.asyncio import Redis
@@ -15,7 +16,7 @@ from app.core.security import (
 )
 from app.models.enums import UserRole
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthenticatedUser, TokenPair
+from app.schemas.auth import AuthenticatedUser, RegisterResponse, TokenPair, VerifyEmailResponse
 from app.schemas.user import UserCreate
 from app.services.token_blacklist_service import blacklist_token, is_token_blacklisted
 
@@ -27,24 +28,59 @@ class AuthService:
         self.db = db
         self.redis = redis
         self.users = UserRepository(db)
+        self._verification_ttl_seconds = 10 * 60
 
-    async def register_user(self, data: UserCreate):
+    async def register_user(self, data: UserCreate) -> RegisterResponse:
         existing = await self.users.get_by_email(data.email)
         if existing:
             raise ValueError("Email already registered")
 
+        existing_phone = await self.users.get_by_phone(data.phone)
+        if existing_phone:
+            raise ValueError("Phone number already registered")
+
         hashed_password = get_password_hash(data.password)
         user = await self.users.create_user(
             email=data.email,
+            phone=data.phone,
+            city=data.city,
             hashed_password=hashed_password,
             full_name=data.full_name,
             role=data.role,
         )
         await self.db.commit()
         await self.db.refresh(user)
-        # Return the ORM user object so callers can produce the appropriate
-        # response model (e.g. `UserRead` which expects timestamps).
-        return user
+
+        # Simulate email verification code generation.
+        verification_code = str(secrets.randbelow(900000) + 100000)
+        await self.redis.set(
+            f"email_verification:{data.email.lower()}",
+            verification_code,
+            ex=self._verification_ttl_seconds,
+        )
+
+        return RegisterResponse(
+            message="Registration successful. Verify your email using the code.",
+            verification_code=verification_code,
+        )
+
+    async def verify_email(self, email: str, code: str) -> VerifyEmailResponse:
+        key = f"email_verification:{email.lower()}"
+        stored_code = await self.redis.get(key)
+        if not stored_code:
+            raise ValueError("Verification code expired or not found")
+        if stored_code != code:
+            raise ValueError("Invalid verification code")
+
+        user = await self.users.get_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+
+        user.is_verified = True
+        await self.db.commit()
+        await self.redis.delete(key)
+
+        return VerifyEmailResponse(message="Email verified successfully")
 
     async def authenticate_user(self, email: str, password: str) -> tuple[AuthenticatedUser, TokenPair]:
         user = await self.users.get_by_email(email)
@@ -56,6 +92,8 @@ class AuthService:
 
         if not user.is_active:
             raise PermissionError("User is inactive")
+        if not user.is_verified:
+            raise PermissionError("Email not verified")
 
         await self.users.update_last_login(user)
         await self.db.commit()

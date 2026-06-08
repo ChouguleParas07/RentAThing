@@ -47,7 +47,5 @@ class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("daily_price >= 0", name="ck_items_daily_price_non_negative"),
         CheckConstraint("security_deposit >= 0", name="ck_items_security_deposit_non_negative"),
-        Index("ix_items_owner_id", "owner_id"),
-        Index("ix_items_category_id", "category_id"),
     )
 
