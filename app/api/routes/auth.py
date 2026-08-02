@@ -13,9 +13,13 @@ from app.db.redis import get_redis
 from app.db.session import get_db_session
 from app.schemas.auth import (
     AuthenticatedUser,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     RefreshTokenRequest,
     RegisterResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     TokenPair,
     VerifyEmailRequest,
     VerifyEmailResponse,
@@ -100,4 +104,26 @@ async def read_current_user(
     current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
 ) -> AuthenticatedUser:
     return current_user
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> ForgotPasswordResponse:
+    try:
+        return await auth_service.forgot_password(body.email)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    body: ResetPasswordRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> ResetPasswordResponse:
+    try:
+        return await auth_service.reset_password(body.email, body.code, body.new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 

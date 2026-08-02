@@ -16,7 +16,14 @@ from app.core.security import (
 )
 from app.models.enums import UserRole
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthenticatedUser, RegisterResponse, TokenPair, VerifyEmailResponse
+from app.schemas.auth import (
+    AuthenticatedUser,
+    ForgotPasswordResponse,
+    RegisterResponse,
+    ResetPasswordResponse,
+    TokenPair,
+    VerifyEmailResponse,
+)
 from app.schemas.user import UserCreate
 from app.services.token_blacklist_service import blacklist_token, is_token_blacklisted
 
@@ -133,4 +140,41 @@ class AuthService:
         exp = payload.get("exp")
         if jti and isinstance(exp, int):
             await blacklist_token(self.redis, jti, exp)
+
+    async def forgot_password(self, email: str) -> ForgotPasswordResponse:
+        user = await self.users.get_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+
+        verification_code = str(secrets.randbelow(900000) + 100000)
+        key = f"password_reset:{email.lower()}"
+        await self.redis.set(
+            key,
+            verification_code,
+            ex=self._verification_ttl_seconds,
+        )
+
+        return ForgotPasswordResponse(
+            message="Password reset code generated.",
+            verification_code=verification_code,
+        )
+
+    async def reset_password(self, email: str, code: str, new_password: str) -> ResetPasswordResponse:
+        key = f"password_reset:{email.lower()}"
+        stored_code = await self.redis.get(key)
+        if not stored_code:
+            raise ValueError("Reset code expired or not found")
+        if stored_code != code:
+            raise ValueError("Invalid reset code")
+
+        user = await self.users.get_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+
+        hashed_password = get_password_hash(new_password)
+        user.hashed_password = hashed_password
+        await self.db.commit()
+        await self.redis.delete(key)
+
+        return ResetPasswordResponse(message="Password reset successful")
 

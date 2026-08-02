@@ -4,6 +4,14 @@ services:
     container_name: rentathing-api
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql+asyncpg://postgres:1008@db:5432/rentathing
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     ports:
       - "8000:8000"
     depends_on:
@@ -37,6 +45,14 @@ services:
     command: celery -A app.tasks.worker.celery_app worker --loglevel=INFO
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql+asyncpg://postgres:1008@db:5432/rentathing
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     depends_on:
       - api
       - redis

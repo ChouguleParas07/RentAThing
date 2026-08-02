@@ -59,3 +59,21 @@ class AuthenticatedUser(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+    verification_code: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str
