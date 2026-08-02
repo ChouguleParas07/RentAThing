@@ -15,3 +15,4 @@ class Category(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     items = relationship("Item", back_populates="category", lazy="selectin")
 
+    
