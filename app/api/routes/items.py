@@ -46,6 +46,7 @@ async def create_item(
 @router.get("", response_model=ItemListResponse)
 async def list_items(
     service: Annotated[ItemService, Depends(get_item_service)],
+    search: str | None = Query(default=None),
     owner_id: UUID | None = Query(default=None),
     category_id: UUID | None = Query(default=None),
     is_active: bool | None = Query(default=True),
@@ -53,6 +54,7 @@ async def list_items(
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ItemListResponse:
     return await service.list_items(
+        search=search,
         owner_id=owner_id,
         category_id=category_id,
         is_active=is_active,

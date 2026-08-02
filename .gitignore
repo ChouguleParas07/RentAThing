@@ -207,7 +207,18 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-
+# Local project files and secrets
+.env*
+!.env.example
+*.sqlite3
+*.db
+*.pid
+uploads/
+media/
+logs/
+data/
+.vscode/
+.idea/
 
 seed.py
 reset_db.py

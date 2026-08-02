@@ -49,6 +49,7 @@ class ItemService:
     async def list_items(
         self,
         *,
+        search: str | None = None,
         owner_id: UUID | None,
         category_id: UUID | None,
         is_active: bool | None,
@@ -59,7 +60,7 @@ class ItemService:
         cache_key = None
         if self.redis is not None:
             cache_key = (
-                f"items:list:owner={owner_id}|cat={category_id}|active={is_active}|"
+                f"items:list:search={search}|owner={owner_id}|cat={category_id}|active={is_active}|"
                 f"skip={skip}|limit={limit}"
             )
             cached = await self.redis.get(cache_key)
@@ -68,6 +69,7 @@ class ItemService:
                 return ItemListResponse.model_validate(data)
 
         total, items = await self.items.list_items(
+            search=search,
             owner_id=owner_id,
             category_id=category_id,
             is_active=is_active,

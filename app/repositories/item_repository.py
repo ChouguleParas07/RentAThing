@@ -21,13 +21,23 @@ class ItemRepository:
     async def list_items(
         self,
         *,
+        search: str | None = None,
         owner_id: UUID | None = None,
         category_id: UUID | None = None,
         is_active: bool | None = True,
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[int, Sequence[Item]]:
+        from sqlalchemy import or_
         conditions = []
+        if search is not None:
+            search_pattern = f"%{search}%"
+            conditions.append(
+                or_(
+                    Item.title.ilike(search_pattern),
+                    Item.description.ilike(search_pattern)
+                )
+            )
         if owner_id is not None:
             conditions.append(Item.owner_id == owner_id)
         if category_id is not None:
