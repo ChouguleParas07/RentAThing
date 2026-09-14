@@ -3,11 +3,14 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
+import os
+import uuid
+import shutil
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
 
-from app.api.deps.auth import require_roles
+from app.api.deps.auth import require_roles, get_optional_current_active_user
 from app.db.session import get_db_session
 from app.db.redis import get_redis
 from app.models.enums import UserRole
@@ -46,6 +49,7 @@ async def create_item(
 @router.get("", response_model=ItemListResponse)
 async def list_items(
     service: Annotated[ItemService, Depends(get_item_service)],
+    current_user: Annotated[AuthenticatedUser | None, Depends(get_optional_current_active_user)] = None,
     search: str | None = Query(default=None),
     owner_id: UUID | None = Query(default=None),
     category_id: UUID | None = Query(default=None),
@@ -53,6 +57,10 @@ async def list_items(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ItemListResponse:
+    if owner_id:
+        if not current_user or (owner_id != current_user.id and current_user.role != UserRole.ADMIN):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to filter by owner_id")
+
     return await service.list_items(
         search=search,
         owner_id=owner_id,
@@ -118,4 +126,30 @@ async def delete_item(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+
+@router.post(
+    "/images",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+)
+async def upload_item_image(
+    file: UploadFile = File(...),
+) -> dict[str, str]:
+    if not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No filename")
+    
+    ext = file.filename.split('.')[-1]
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    
+    # Save to uploads directory at root of project
+    import pathlib
+    uploads_dir = pathlib.Path(__file__).resolve().parent.parent.parent.parent / "uploads"
+    uploads_dir.mkdir(exist_ok=True)
+    
+    file_path = uploads_dir / filename
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"url": f"http://localhost:8000/uploads/{filename}"}
 

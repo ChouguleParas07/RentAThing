@@ -39,10 +39,10 @@ class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
 
-    owner = relationship("User", back_populates="items", lazy="selectin")
-    category = relationship("Category", back_populates="items", lazy="selectin")
-    bookings = relationship("Booking", back_populates="item", lazy="selectin")
-    reviews = relationship("Review", back_populates="item", lazy="selectin")
+    owner = relationship("User", back_populates="items")
+    category = relationship("Category", back_populates="items")
+    bookings = relationship("Booking", back_populates="item")
+    reviews = relationship("Review", back_populates="item")
 
     __table_args__ = (
         CheckConstraint("daily_price >= 0", name="ck_items_daily_price_non_negative"),

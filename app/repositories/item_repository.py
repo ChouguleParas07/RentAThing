@@ -35,7 +35,8 @@ class ItemRepository:
             conditions.append(
                 or_(
                     Item.title.ilike(search_pattern),
-                    Item.description.ilike(search_pattern)
+                    Item.description.ilike(search_pattern),
+                    Item.location_text.ilike(search_pattern)
                 )
             )
         if owner_id is not None:
@@ -74,6 +75,7 @@ class ItemRepository:
         available_from,
         available_until,
         category_id: UUID | None,
+        images: list[dict] | None = None,
     ) -> Item:
         item = Item(
             owner_id=owner_id,
@@ -87,6 +89,7 @@ class ItemRepository:
             available_from=available_from,
             available_until=available_until,
             category_id=category_id,
+            images=images,
         )
         self.session.add(item)
         await self.session.flush()

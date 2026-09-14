@@ -48,6 +48,49 @@ async def create_booking(
     except (ValueError, PermissionError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
+@router.get('/{booking_id}', response_model=BookingRead)
+async def get_booking(
+    booking_id: UUID,
+    current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
+    service: Annotated[BookingService, Depends(get_booking_service)]
+):
+    try:
+        return await service.get_booking(
+            booking_id=booking_id,
+            actor_id=current_user.id,
+            role=current_user.role,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    
+
+
+@router.get("", response_model=BookingListResponse)
+async def list_bookings(
+    current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
+    service: Annotated[BookingService, Depends(get_booking_service)],
+    renter_id: UUID | None = None,
+    owner_id: UUID | None = None,
+    item_id: UUID | None = None,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> BookingListResponse:
+    if renter_id:
+        if renter_id != current_user.id and current_user.role != UserRole.ADMIN:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+        return await service.list_bookings_for_renter(renter_id=renter_id, skip=skip, limit=limit, item_id=item_id)
+    if owner_id:
+        if owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+        return await service.list_bookings_for_owner(owner_id=owner_id, skip=skip, limit=limit, item_id=item_id)
+    
+    # Fallback if no filters are provided, return empty or default behavior
+    if current_user.role == UserRole.ADMIN:
+        return BookingListResponse(total=0, items=[])
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Must provide renter_id or owner_id")
+
 
 @router.get("/me/renter", response_model=BookingListResponse)
 async def list_my_renter_bookings(
@@ -69,6 +112,24 @@ async def list_my_owner_bookings(
     if current_user.role not in (UserRole.OWNER, UserRole.ADMIN):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners can view owner bookings")
     return await service.list_bookings_for_owner(owner_id=current_user.id, skip=skip, limit=limit)
+
+
+@router.get("/{booking_id}", response_model=BookingRead)
+async def get_booking(
+    booking_id: UUID,
+    current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
+    service: Annotated[BookingService, Depends(get_booking_service)],
+) -> BookingRead:
+    try:
+        return await service.get_booking(
+            booking_id=booking_id,
+            actor_id=current_user.id,
+            role=current_user.role,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
 
 @router.patch("/{booking_id}/status", response_model=BookingRead)

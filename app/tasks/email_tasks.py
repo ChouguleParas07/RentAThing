@@ -14,6 +14,5 @@ def send_email_notification(to: str, subject: str, body: str) -> None:
     In production, integrate with a real email provider (SES, SendGrid, etc.).
     """
 
-    logger.info("Sending email", extra={"to": to, "subject": subject})
     # Here we'd call the real email API
 

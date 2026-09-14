@@ -24,7 +24,7 @@ from app.schemas.auth import (
     TokenPair,
     VerifyEmailResponse,
 )
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.services.token_blacklist_service import blacklist_token, is_token_blacklisted
 
 
@@ -67,8 +67,7 @@ class AuthService:
         )
 
         return RegisterResponse(
-            message="Registration successful. Verify your email using the code.",
-            verification_code=verification_code,
+            message="Registration successful. Verify your email using the code."
         )
 
     async def verify_email(self, email: str, code: str) -> VerifyEmailResponse:
@@ -130,6 +129,11 @@ class AuthService:
         roles: Iterable[UserRole] = [user.role]
         access = create_access_token(subject=str(user.id), roles=roles)
         new_refresh = create_refresh_token(subject=str(user.id), roles=roles)
+        
+        # Blacklist the old refresh token to prevent replay attacks
+        if isinstance(payload.get("exp"), int):
+            await blacklist_token(self.redis, jti, payload.get("exp"))
+            
         return TokenPair(access_token=access, refresh_token=new_refresh)
 
     async def logout(self, token: str) -> None:
@@ -155,8 +159,7 @@ class AuthService:
         )
 
         return ForgotPasswordResponse(
-            message="Password reset code generated.",
-            verification_code=verification_code,
+            message="Password reset code generated."
         )
 
     async def reset_password(self, email: str, code: str, new_password: str) -> ResetPasswordResponse:
@@ -177,4 +180,44 @@ class AuthService:
         await self.redis.delete(key)
 
         return ResetPasswordResponse(message="Password reset successful")
+
+
+    async def update_profile(self, user_id: str, data: UserUpdate) -> AuthenticatedUser:
+        user = await self.users.get_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if data.email is not None and data.email != user.email:
+            existing_email = await self.users.get_by_email(data.email)
+            if existing_email:
+                raise ValueError("Email already in use")
+            user.email = data.email
+            # Usually we might unverify them if email changes, but simple for now
+            user.is_verified = False
+            # Generate new code...
+            verification_code = str(secrets.randbelow(900000) + 100000)
+            await self.redis.set(
+                f"email_verification:{data.email.lower()}",
+                verification_code,
+                ex=self._verification_ttl_seconds,
+            )
+
+        if data.phone is not None and data.phone != user.phone:
+            existing_phone = await self.users.get_by_phone(data.phone)
+            if existing_phone:
+                raise ValueError("Phone number already in use")
+            user.phone = data.phone
+
+        if data.city is not None:
+            user.city = data.city
+
+        if data.full_name is not None:
+            user.full_name = data.full_name
+
+        if data.password is not None:
+            user.hashed_password = get_password_hash(data.password)
+
+        await self.db.commit()
+        await self.db.refresh(user)
+        return AuthenticatedUser.model_validate(user)
 

@@ -24,7 +24,7 @@ from app.schemas.auth import (
     VerifyEmailRequest,
     VerifyEmailResponse,
 )
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.services.auth_service import AuthService
 
 
@@ -38,7 +38,7 @@ def get_auth_service(
     return AuthService(db=db, redis=redis)
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit_login)])
 async def register_user(
     data: UserCreate,
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
@@ -104,6 +104,18 @@ async def read_current_user(
     current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
 ) -> AuthenticatedUser:
     return current_user
+
+
+@router.patch("/me", response_model=AuthenticatedUser)
+async def update_current_user(
+    payload: UserUpdate,
+    current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> AuthenticatedUser:
+    try:
+        return await auth_service.update_profile(current_user.id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)

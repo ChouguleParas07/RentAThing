@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from asgiref.sync import async_to_sync
 import logging
 from uuid import UUID
 
@@ -38,7 +39,7 @@ def send_booking_created_email(booking_id: str) -> None:
             },
         )
 
-    asyncio.run(_inner())
+    async_to_sync(_inner)()
 
 
 @celery_app.task(name="booking.send_start_reminder")
@@ -57,7 +58,7 @@ def send_booking_start_reminder(booking_id: str) -> None:
             },
         )
 
-    asyncio.run(_inner())
+    async_to_sync(_inner)()
 
 
 @celery_app.task(name="booking.auto_release_deposit")
@@ -65,19 +66,31 @@ def auto_release_deposit(booking_id: str) -> None:
     """Automatically release deposit after a delay if booking is completed and no disputes."""
 
     async def _inner() -> None:
-        booking = await _get_booking(UUID(booking_id))
-        if not booking or booking.status != BookingStatus.COMPLETED:
-            return
+        async with AsyncSessionFactory() as session:
+            booking = await session.get(Booking, UUID(booking_id))
+            if not booking or booking.status != BookingStatus.COMPLETED:
+                return
 
-        if booking.escrow_record and booking.escrow_record.amount_released == 0:
-            # Simulate auto-release; in a real system we'd call EscrowService
-            logger.info(
-                "Auto-releasing deposit",
-                extra={
-                    "booking_id": str(booking.id),
-                    "escrow_id": str(booking.escrow_record.id),
-                },
-            )
+            if booking.escrow_record and booking.escrow_record.amount_released == 0:
+                from app.services.escrow_service import EscrowService
+                from app.models.enums import UserRole
+                
+                escrow_service = EscrowService(session)
+                try:
+                    await escrow_service.settle_for_booking(
+                        booking_id=booking.id,
+                        actor_id=booking.owner_id,
+                        role=UserRole.ADMIN,
+                        damage_fee=0
+                    )
+                    logger.info(
+                        "Auto-releasing deposit",
+                        extra={
+                            "booking_id": str(booking.id),
+                            "escrow_id": str(booking.escrow_record.id),
+                        },
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to auto-release deposit: {e}")
 
-    asyncio.run(_inner())
-
+    async_to_sync(_inner)()

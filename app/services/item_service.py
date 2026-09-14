@@ -41,6 +41,7 @@ class ItemService:
             available_from=payload.available_from,
             available_until=payload.available_until,
             category_id=payload.category_id,
+            images=[img.model_dump() for img in payload.images] if payload.images else None,
         )
         await self.db.commit()
         await self.db.refresh(item)

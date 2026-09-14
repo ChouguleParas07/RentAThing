@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 
 from app.schemas.category import CategoryRead
 
+class ItemImage(BaseModel):
+    url: str
+
 
 class ItemBase(BaseModel):
     title: str = Field(max_length=255)
@@ -17,7 +20,7 @@ class ItemBase(BaseModel):
     location_lat: float
     location_lng: float
     location_text: str | None = None
-    images: dict | None = None
+    images: list[ItemImage] | None = None
     available_from: date | None = None
     available_until: date | None = None
     category_id: UUID | None = None
@@ -35,7 +38,7 @@ class ItemUpdate(BaseModel):
     location_lat: float | None = None
     location_lng: float | None = None
     location_text: str | None = None
-    images: dict | None = None
+    images: list[ItemImage] | None = None
     available_from: date | None = None
     available_until: date | None = None
     category_id: UUID | None = None
@@ -53,7 +56,7 @@ class ItemRead(BaseModel):
     location_lat: float
     location_lng: float
     location_text: str | None
-    images: dict | None = None
+    images: list[ItemImage] | None = None
     is_active: bool
     available_from: date | None
     available_until: date | None

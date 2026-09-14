@@ -65,3 +65,13 @@ class UserRepository:
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
 
+    async def list(self, skip: int = 0, limit: int = 50) -> tuple[int, list[User]]:
+        from sqlalchemy import func
+        count_stmt = select(func.count(User.id))
+        total = await self.session.execute(count_stmt)
+        
+        stmt = select(User).order_by(User.created_at.desc()).offset(skip).limit(limit)
+        res = await self.session.execute(stmt)
+        
+        return total.scalar_one(), list(res.scalars().all())
+

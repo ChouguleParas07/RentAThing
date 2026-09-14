@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -35,12 +35,13 @@ class Review(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
 
-    item = relationship("Item", back_populates="reviews", lazy="selectin")
-    booking = relationship("Booking", back_populates="reviews", lazy="selectin")
-    author = relationship("User", back_populates="reviews_written", foreign_keys=[author_id], lazy="selectin")
-    target_user = relationship("User", back_populates="reviews_received", foreign_keys=[target_user_id], lazy="selectin")
+    item = relationship("Item", back_populates="reviews")
+    booking = relationship("Booking", back_populates="reviews")
+    author = relationship("User", back_populates="reviews_written", foreign_keys=[author_id])
+    target_user = relationship("User", back_populates="reviews_received", foreign_keys=[target_user_id])
 
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_reviews_rating_range"),
+        UniqueConstraint("booking_id", "author_id", name="uq_review_booking_author"),
     )
 

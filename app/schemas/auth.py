@@ -30,7 +30,6 @@ class LoginRequest(BaseModel):
 
 class RegisterResponse(BaseModel):
     message: str
-    verification_code: str
 
 
 class VerifyEmailRequest(BaseModel):
@@ -66,7 +65,6 @@ class ForgotPasswordRequest(BaseModel):
 
 class ForgotPasswordResponse(BaseModel):
     message: str
-    verification_code: str
 
 
 class ResetPasswordRequest(BaseModel):

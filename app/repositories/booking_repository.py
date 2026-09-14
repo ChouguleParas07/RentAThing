@@ -25,8 +25,11 @@ class BookingRepository:
         renter_id: UUID,
         skip: int = 0,
         limit: int = 20,
+        item_id: UUID | None = None,
     ) -> tuple[int, Sequence[Booking]]:
         base: Select[tuple[Booking]] = select(Booking).where(Booking.renter_id == renter_id)
+        if item_id:
+            base = base.where(Booking.item_id == item_id)
         count_stmt = select(func.count()).select_from(base.subquery())
         total_res = await self.session.execute(count_stmt)
         total = int(total_res.scalar_one() or 0)
@@ -40,8 +43,11 @@ class BookingRepository:
         owner_id: UUID,
         skip: int = 0,
         limit: int = 20,
+        item_id: UUID | None = None,
     ) -> tuple[int, Sequence[Booking]]:
         base: Select[tuple[Booking]] = select(Booking).where(Booking.owner_id == owner_id)
+        if item_id:
+            base = base.where(Booking.item_id == item_id)
         count_stmt = select(func.count()).select_from(base.subquery())
         total_res = await self.session.execute(count_stmt)
         total = int(total_res.scalar_one() or 0)
@@ -60,7 +66,7 @@ class BookingRepository:
         """Return True if there is any non-cancelled/non-completed booking overlapping the given range."""
 
         active_statuses: list[BookingStatus] = [
-            BookingStatus.REQUESTED,
+            BookingStatus.PENDING,
             BookingStatus.APPROVED,
             BookingStatus.ACTIVE,
         ]

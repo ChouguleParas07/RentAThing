@@ -1,0 +1,32 @@
+[
+  {
+    "title": "DJI Mavic 3 Pro Drone",
+    "images": {
+      "url": "/assets/drone.png"
+    }
+  },
+  {
+    "title": "Sony Alpha 7 IV Mirrorless Camera",
+    "images": {
+      "url": "/assets/camera.png"
+    }
+  },
+  {
+    "title": "Premium Camping Tent Set",
+    "images": {
+      "url": "/assets/tent.png"
+    }
+  },
+  {
+    "title": "Cordless Drill/Driver Kit",
+    "images": {
+      "url": "/assets/drill.png"
+    }
+  },
+  {
+    "title": "HD Projector for Home Theater",
+    "images": {
+      "url": "/assets/projector.png"
+    }
+  }
+]

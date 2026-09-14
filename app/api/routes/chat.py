@@ -100,21 +100,31 @@ async def _authenticate_websocket(token: str) -> TokenPayload:
 async def websocket_endpoint(
     websocket: WebSocket,
     conversation_id: str,
-    token: str,
 ) -> None:
+    # Use Sec-WebSocket-Protocol for auth token (expected to be passed as ['Bearer', '<token>'] or just ['<token>'])
+    token = None
+    if websocket.scope.get("subprotocols"):
+        token = websocket.scope["subprotocols"][0]
+        
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     print(f"[WS] Connection attempt for conversation: {conversation_id} with token: {token[:15]}...", flush=True)
-    # Token is expected as query param: ?token=Bearer <jwt> or just <jwt>
     jwt_token = token.replace("Bearer ", "").replace("bearer ", "")
+    
     try:
         payload = await _authenticate_websocket(jwt_token)
         print(f"[WS] Auth successful for user: {payload.sub}", flush=True)
+        # Accept the connection with the negotiated subprotocol
+        await websocket.accept(subprotocol=token)
+        manager.active_connections.setdefault(conversation_id, []).append(websocket)
+        print(f"[WS] Connected and added to manager for conversation: {conversation_id}", flush=True)
     except Exception as exc:
         print(f"[WS] Auth failed: {exc}", flush=True)
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    await manager.connect(conversation_id, websocket)
-    print(f"[WS] Connected and added to manager for conversation: {conversation_id}", flush=True)
     try:
         while True:
             data = await websocket.receive_json()

@@ -45,7 +45,7 @@ class BookingRead(BaseModel):
 
 class BookingListResponse(BaseModel):
     total: int
-    bookings: list[BookingRead]
+    items: list[BookingRead]
 
 
 class BookingStatusUpdate(BaseModel):

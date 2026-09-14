@@ -27,13 +27,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     trust_score: Mapped[float | None] = mapped_column(Numeric(4, 2), nullable=True)
 
     # Relationships (back_populates defined in related models)
-    items = relationship("Item", back_populates="owner", lazy="selectin")
-    bookings_as_renter = relationship("Booking", back_populates="renter", foreign_keys="Booking.renter_id", lazy="selectin")
-    bookings_as_owner = relationship("Booking", back_populates="owner", foreign_keys="Booking.owner_id", lazy="selectin")
-    reviews_written = relationship("Review", back_populates="author", foreign_keys="Review.author_id", lazy="selectin")
-    reviews_received = relationship("Review", back_populates="target_user", foreign_keys="Review.target_user_id", lazy="selectin")
-    messages_sent = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id", lazy="selectin")
-    messages_received = relationship("Message", back_populates="receiver", foreign_keys="Message.receiver_id", lazy="selectin")
+    items = relationship("Item", back_populates="owner")
+    bookings_as_renter = relationship("Booking", back_populates="renter", foreign_keys="Booking.renter_id")
+    bookings_as_owner = relationship("Booking", back_populates="owner", foreign_keys="Booking.owner_id")
+    reviews_written = relationship("Review", back_populates="author", foreign_keys="Review.author_id")
+    reviews_received = relationship("Review", back_populates="target_user", foreign_keys="Review.target_user_id")
+    messages_sent = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id")
+    messages_received = relationship("Message", back_populates="receiver", foreign_keys="Message.receiver_id")
 
     __table_args__ = (
         Index("ix_users_email_role", "email", "role"),

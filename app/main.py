@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+import os
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import get_settings
@@ -24,6 +25,8 @@ from app.api.routes import bookings as bookings_routes
 from app.api.routes import escrow as escrow_routes
 from app.api.routes import reviews as reviews_routes
 from app.api.routes import chat as chat_routes
+from app.api.routes import categories as categories_routes
+from app.api.routes import users as users_routes
 
 
 def create_app() -> FastAPI:
@@ -67,6 +70,8 @@ def create_app() -> FastAPI:
     app.include_router(escrow_routes.router)
     app.include_router(reviews_routes.router)
     app.include_router(chat_routes.router)
+    app.include_router(categories_routes.router)
+    app.include_router(users_routes.router)
 
     @app.get("/health", tags=["health"])
     async def health_liveness() -> dict[str, str]:
@@ -93,6 +98,11 @@ def create_app() -> FastAPI:
             return FileResponse(index)
 
         app.mount("/app", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+
+    # Serve uploads directory
+    uploads_dir = Path(__file__).resolve().parent.parent / "uploads"
+    os.makedirs(uploads_dir, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
     return app
 

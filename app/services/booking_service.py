@@ -85,7 +85,6 @@ class BookingService:
             notes=payload.notes,
         )
 
-        # Immediately hold the security deposit in simulated escrow
         if item.security_deposit > 0:
             await self.escrow.create_and_hold_for_booking(
                 booking_id=booking.id,
@@ -94,9 +93,9 @@ class BookingService:
                 item_id=item.id,
                 amount_held=item.security_deposit,
             )
-        else:
-            await self.db.commit()
-            await self.db.refresh(booking)
+            
+        await self.db.commit()
+        await self.db.refresh(booking)
 
         # Store idempotency mapping
         if self.redis is not None and idempotency_key:
@@ -112,16 +111,32 @@ class BookingService:
 
         return BookingRead.model_validate(booking)
 
+    async def get_booking(
+            self,
+            *,
+            booking_id: UUID,
+            actor_id: UUID,
+            role: UserRole,
+    ) -> BookingRead:
+        booking = await self.bookings.get_by_id(booking_id)
+        if not booking:
+            raise LookupError('Booking not found')
+
+        await self._ensure_actor_can_modify(booking=booking, actor_id=actor_id, role=role)
+        return BookingRead.model_validate(booking)
+
+
     async def list_bookings_for_renter(
         self,
         renter_id: UUID,
         skip: int,
         limit: int,
+        item_id: UUID | None = None,
     ) -> BookingListResponse:
-        total, bookings = await self.bookings.list_for_renter(renter_id=renter_id, skip=skip, limit=limit)
+        total, bookings = await self.bookings.list_for_renter(renter_id=renter_id, skip=skip, limit=limit, item_id=item_id)
         return BookingListResponse(
             total=total,
-            bookings=[BookingRead.model_validate(b) for b in bookings],
+            items=[BookingRead.model_validate(b) for b in bookings],
         )
 
     async def list_bookings_for_owner(
@@ -129,12 +144,28 @@ class BookingService:
         owner_id: UUID,
         skip: int,
         limit: int,
+        item_id: UUID | None = None,
     ) -> BookingListResponse:
-        total, bookings = await self.bookings.list_for_owner(owner_id=owner_id, skip=skip, limit=limit)
+        total, bookings = await self.bookings.list_for_owner(owner_id=owner_id, skip=skip, limit=limit, item_id=item_id)
         return BookingListResponse(
             total=total,
-            bookings=[BookingRead.model_validate(b) for b in bookings],
+            items=[BookingRead.model_validate(b) for b in bookings],
         )
+
+    async def get_booking(
+        self,
+        *,
+        booking_id: UUID,
+        actor_id: UUID,
+        role: UserRole,
+    ) -> BookingRead:
+        booking = await self.bookings.get_by_id(booking_id)
+        if not booking:
+            raise LookupError("Booking not found")
+
+        await self._ensure_actor_can_modify(booking=booking, actor_id=actor_id, role=role)
+
+        return BookingRead.model_validate(booking)
 
     async def _ensure_actor_can_modify(
         self,
@@ -163,12 +194,13 @@ class BookingService:
         await self._ensure_actor_can_modify(booking=booking, actor_id=actor_id, role=role)
 
         # Basic lifecycle guards
-        if booking.status in (BookingStatus.COMPLETED, BookingStatus.CANCELLED):
+        if booking.status in (BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.REJECTED):
             raise ValueError("Booking is already finalized")
 
-        if booking.status == BookingStatus.REQUESTED and new_status not in (
+        if booking.status == BookingStatus.PENDING and new_status not in (
             BookingStatus.APPROVED,
             BookingStatus.CANCELLED,
+            BookingStatus.REJECTED,
         ):
             raise ValueError("Requested bookings can only be approved or cancelled")
 

@@ -11,15 +11,26 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+import time
+
 class MockRedis:
     def __init__(self):
         self.data = {}
     
     async def get(self, key: str):
-        return self.data.get(key)
+        record = self.data.get(key)
+        if not record:
+            return None
+        if record['ex'] and time.time() > record['ex']:
+            self.data.pop(key, None)
+            return None
+        return record['value']
     
     async def set(self, key: str, value: str, ex=None):
-        self.data[key] = value
+        self.data[key] = {
+            'value': value,
+            'ex': time.time() + ex if ex else None
+        }
         
     async def delete(self, key: str):
         self.data.pop(key, None)
@@ -28,9 +39,16 @@ class MockRedis:
         return 1 if key in self.data else 0
         
     async def incr(self, key: str):
-        val = self.data.get(key, 0)
-        self.data[key] = int(val) + 1
-        return self.data[key]
+        record = self.data.get(key)
+        val = 0
+        if record and (not record['ex'] or time.time() <= record['ex']):
+            val = int(record['value'])
+        
+        self.data[key] = {
+            'value': str(val + 1),
+            'ex': record['ex'] if record else None
+        }
+        return val + 1
         
     async def expire(self, key: str, time):
         pass

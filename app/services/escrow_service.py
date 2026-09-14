@@ -36,7 +36,6 @@ class EscrowService:
             amount_held=amount_held,
         )
         escrow = await self.escrows.mark_held(escrow)
-        await self.db.commit()
         return EscrowRead.model_validate(escrow)
 
     async def get_for_booking(self, booking_id: UUID) -> EscrowRead:

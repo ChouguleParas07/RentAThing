@@ -21,6 +21,14 @@ class UserCreate(UserBase):
     role: UserRole = UserRole.RENTER
 
 
+class UserUpdate(BaseModel):
+    email: EmailStr | None = None
+    phone: str | None = None
+    city: str | None = None
+    full_name: str | None = Field(None, min_length=2, max_length=100)
+    password: str | None = Field(None, min_length=8, max_length=100)
+
+
 class UserRead(UserBase):
     id: UUID
     is_active: bool

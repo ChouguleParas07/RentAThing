@@ -17,7 +17,7 @@ class Booking(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     total_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    status: Mapped[BookingStatus] = mapped_column(default=BookingStatus.REQUESTED, nullable=False)
+    status: Mapped[BookingStatus] = mapped_column(default=BookingStatus.PENDING, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     item_id: Mapped[uuid.UUID] = mapped_column(
@@ -36,11 +36,11 @@ class Booking(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
 
-    item = relationship("Item", back_populates="bookings", lazy="selectin")
-    renter = relationship("User", back_populates="bookings_as_renter", foreign_keys=[renter_id], lazy="selectin")
-    owner = relationship("User", back_populates="bookings_as_owner", foreign_keys=[owner_id], lazy="selectin")
-    reviews = relationship("Review", back_populates="booking", lazy="selectin")
-    escrow_record = relationship("EscrowRecord", back_populates="booking", uselist=False, lazy="selectin")
+    item = relationship("Item", back_populates="bookings")
+    renter = relationship("User", back_populates="bookings_as_renter", foreign_keys=[renter_id])
+    owner = relationship("User", back_populates="bookings_as_owner", foreign_keys=[owner_id])
+    reviews = relationship("Review", back_populates="booking")
+    escrow_record = relationship("EscrowRecord", back_populates="booking", uselist=False)
 
     __table_args__ = (
         CheckConstraint("end_date >= start_date", name="ck_bookings_end_after_start"),

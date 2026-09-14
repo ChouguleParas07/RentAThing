@@ -61,6 +61,24 @@ async def get_current_active_user(
     return current_user
 
 
+async def get_optional_current_active_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    redis: Annotated[Redis, Depends(get_redis)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AuthenticatedUser | None:
+    if not credentials or not credentials.credentials:
+        return None
+    try:
+        payload = await _get_token_payload(credentials, redis)
+        repo = UserRepository(db)
+        user = await repo.get_by_id(payload.sub)
+        if user and user.is_active:
+            return AuthenticatedUser.model_validate(user)
+    except Exception:
+        pass
+    return None
+
+
 def require_roles(*roles: UserRole):
     async def _role_checker(
         user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
