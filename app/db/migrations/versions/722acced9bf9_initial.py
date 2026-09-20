@@ -101,7 +101,7 @@ def upgrade() -> None:
     sa.Column('start_date', sa.Date(), nullable=False),
     sa.Column('end_date', sa.Date(), nullable=False),
     sa.Column('total_price', sa.Numeric(precision=10, scale=2), nullable=False),
-    sa.Column('status', sa.Enum('REQUESTED', 'APPROVED', 'ACTIVE', 'COMPLETED', 'CANCELLED', name='bookingstatus'), nullable=False),
+    sa.Column('status', sa.Enum('REQUESTED', 'PENDING', 'APPROVED', 'REJECTED', 'ACTIVE', 'COMPLETED', 'CANCELLED', name='bookingstatus'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('item_id', sa.UUID(), nullable=False),
     sa.Column('renter_id', sa.UUID(), nullable=False),

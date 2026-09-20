@@ -56,6 +56,31 @@ class BookingRepository:
         res = await self.session.execute(stmt)
         return total, res.scalars().all()
 
+    async def list_bookings(
+        self,
+        renter_id: UUID | None = None,
+        owner_id: UUID | None = None,
+        item_id: UUID | None = None,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[int, Sequence[Booking]]:
+        base: Select[tuple[Booking]] = select(Booking)
+        if renter_id:
+            base = base.where(Booking.renter_id == renter_id)
+        if owner_id:
+            base = base.where(Booking.owner_id == owner_id)
+        if item_id:
+            base = base.where(Booking.item_id == item_id)
+
+        count_stmt = select(func.count()).select_from(base.subquery())
+        total_res = await self.session.execute(count_stmt)
+        total = int(total_res.scalar_one() or 0)
+
+        stmt = base.order_by(Booking.created_at.desc()).offset(skip).limit(limit)
+        res = await self.session.execute(stmt)
+        return total, res.scalars().all()
+
+
     async def has_overlapping_booking(
         self,
         *,
@@ -66,6 +91,7 @@ class BookingRepository:
         """Return True if there is any non-cancelled/non-completed booking overlapping the given range."""
 
         active_statuses: list[BookingStatus] = [
+            BookingStatus.REQUESTED,
             BookingStatus.PENDING,
             BookingStatus.APPROVED,
             BookingStatus.ACTIVE,

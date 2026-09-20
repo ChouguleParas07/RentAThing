@@ -14,7 +14,6 @@ class ReviewBase(BaseModel):
 class ReviewCreate(ReviewBase):
     booking_id: UUID
     item_id: UUID
-    target_user_id: UUID
 
 
 class ReviewRead(BaseModel):
@@ -32,5 +31,6 @@ class ReviewRead(BaseModel):
 
 class ReviewListResponse(BaseModel):
     total: int
-    reviews: list[ReviewRead]
+    reviews: list[ReviewRead] = Field(default_factory=list)
+    items: list[ReviewRead] = Field(default_factory=list)
 

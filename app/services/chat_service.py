@@ -55,3 +55,8 @@ class ChatService:
             messages=[MessageRead.model_validate(m) for m in messages],
         )
 
+    async def clear_conversation(self, *, user_id: UUID, conversation_id: str) -> int:
+        count = await self.messages.clear_conversation(conversation_id, user_id)
+        await self.db.commit()
+        return count
+

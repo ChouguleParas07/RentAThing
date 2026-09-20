@@ -10,6 +10,7 @@ class UserRole(str, enum.Enum):
 
 
 class BookingStatus(str, enum.Enum):
+    REQUESTED = "REQUESTED"
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = 'REJECTED'

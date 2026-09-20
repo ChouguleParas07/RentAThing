@@ -214,6 +214,9 @@ class AuthService:
         if data.full_name is not None:
             user.full_name = data.full_name
 
+        if data.avatar_url is not None:
+            user.avatar_url = data.avatar_url
+
         if data.password is not None:
             user.hashed_password = get_password_hash(data.password)
 

@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.category import CategoryRead
 
@@ -58,6 +58,13 @@ class ItemRead(BaseModel):
     location_text: str | None
     images: list[ItemImage] | None = None
     is_active: bool
+
+    @field_validator("images", mode="before")
+    @classmethod
+    def convert_single_dict_to_list(cls, v):
+        if isinstance(v, dict):
+            return [v]
+        return v
     available_from: date | None
     available_until: date | None
     created_at: datetime

@@ -57,7 +57,20 @@ class MessageRepository:
         total_res = await self.session.execute(count_stmt)
         total = int(total_res.scalar_one() or 0)
 
-        stmt = base.order_by(Message.created_at.asc()).offset(skip).limit(limit)
+        order_clause = Message.created_at.desc() if (not other_user_id and not conversation_id) else Message.created_at.asc()
+        stmt = base.order_by(order_clause).offset(skip).limit(limit)
         res = await self.session.execute(stmt)
         return total, res.scalars().all()
+
+    async def clear_conversation(self, conversation_id: str, user_id: UUID) -> int:
+        from sqlalchemy import delete
+        stmt = delete(Message).where(
+            and_(
+                Message.conversation_id == conversation_id,
+                or_(Message.sender_id == user_id, Message.receiver_id == user_id),
+            )
+        )
+        res = await self.session.execute(stmt)
+        await self.session.flush()
+        return res.rowcount
 

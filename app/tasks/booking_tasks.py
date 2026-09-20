@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from asgiref.sync import async_to_sync
 import logging
 from uuid import UUID
 
@@ -39,7 +38,7 @@ def send_booking_created_email(booking_id: str) -> None:
             },
         )
 
-    async_to_sync(_inner)()
+    asyncio.run(_inner())
 
 
 @celery_app.task(name="booking.send_start_reminder")
@@ -58,7 +57,7 @@ def send_booking_start_reminder(booking_id: str) -> None:
             },
         )
 
-    async_to_sync(_inner)()
+    asyncio.run(_inner())
 
 
 @celery_app.task(name="booking.auto_release_deposit")
@@ -93,4 +92,4 @@ def auto_release_deposit(booking_id: str) -> None:
                 except Exception as e:
                     logger.error(f"Failed to auto-release deposit: {e}")
 
-    async_to_sync(_inner)()
+    asyncio.run(_inner())

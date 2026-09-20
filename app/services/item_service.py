@@ -44,8 +44,8 @@ class ItemService:
             images=[img.model_dump() for img in payload.images] if payload.images else None,
         )
         await self.db.commit()
-        await self.db.refresh(item)
-        return ItemRead.model_validate(item)
+        fetched_item = await self.items.get_by_id(item.id)
+        return ItemRead.model_validate(fetched_item or item)
 
     async def list_items(
         self,
@@ -116,12 +116,12 @@ class ItemService:
             setattr(item, field, value)
 
         await self.db.commit()
-        await self.db.refresh(item)
+        fetched_item = await self.items.get_by_id(item.id)
         # Invalidate item list cache
         if self.redis is not None:
             async for key in self.redis.scan_iter("items:list:*"):
                 await self.redis.delete(key)
-        return ItemRead.model_validate(item)
+        return ItemRead.model_validate(fetched_item or item)
 
     async def delete_item(
         self,

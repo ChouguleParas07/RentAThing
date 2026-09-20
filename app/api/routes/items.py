@@ -57,9 +57,9 @@ async def list_items(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ItemListResponse:
-    if owner_id:
+    if owner_id and is_active is not True:
         if not current_user or (owner_id != current_user.id and current_user.role != UserRole.ADMIN):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to filter by owner_id")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to filter inactive items by owner_id")
 
     return await service.list_items(
         search=search,

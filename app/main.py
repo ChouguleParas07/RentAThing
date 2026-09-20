@@ -29,6 +29,23 @@ from app.api.routes import categories as categories_routes
 from app.api.routes import users as users_routes
 
 
+from contextlib import asynccontextmanager
+from sqlalchemy import text
+from app.db.session import engine
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        async with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as conn:
+            await conn.execute(text("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'PENDING';"))
+            await conn.execute(text("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'REJECTED';"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;"))
+    except Exception:
+        pass
+    yield
+
+
 def create_app() -> FastAPI:
     """Application factory for creating a FastAPI instance.
 
@@ -44,6 +61,7 @@ def create_app() -> FastAPI:
         docs_url="/docs" if settings.app_env != "prod" else None,
         redoc_url="/redoc" if settings.app_env != "prod" else None,
         openapi_url="/openapi.json" if settings.app_env != "prod" else None,
+        lifespan=lifespan,
     )
 
     # Exception handlers (consistent JSON and logging)

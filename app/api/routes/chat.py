@@ -54,6 +54,16 @@ async def get_conversation(
     )
 
 
+@router.delete("/conversations/{conversation_id}")
+async def clear_conversation(
+    conversation_id: str,
+    current_user: Annotated[AuthenticatedUser, Depends(get_current_active_user)],
+    service: Annotated[ChatService, Depends(get_chat_service)],
+) -> dict:
+    count = await service.clear_conversation(user_id=current_user.id, conversation_id=conversation_id)
+    return {"message": "Chat history cleared successfully", "deleted_count": count}
+
+
 class ConnectionManager:
     """In-memory connection manager keyed by conversation."""
 

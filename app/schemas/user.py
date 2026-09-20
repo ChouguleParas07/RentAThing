@@ -26,6 +26,7 @@ class UserUpdate(BaseModel):
     phone: str | None = None
     city: str | None = None
     full_name: str | None = Field(None, min_length=2, max_length=100)
+    avatar_url: str | None = None
     password: str | None = Field(None, min_length=8, max_length=100)
 
 

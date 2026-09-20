@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,9 +27,18 @@ async def list_users(
     repo = UserRepository(db)
     total, items = await repo.list(skip=skip, limit=limit)
     
-    # Using AuthenticatedUser as the schema to return for the list items,
-    # because it already omits hashed_password.
     return {
         "items": [AuthenticatedUser.model_validate(u) for u in items],
         "total": total
     }
+
+@router.get("/{user_id}", response_model=AuthenticatedUser)
+async def get_user_profile(
+    user_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AuthenticatedUser:
+    repo = UserRepository(db)
+    user = await repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return AuthenticatedUser.model_validate(user)

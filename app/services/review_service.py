@@ -13,6 +13,9 @@ from app.repositories.review_repository import ReviewRepository
 from app.schemas.review import ReviewCreate, ReviewListResponse, ReviewRead
 
 
+from app.models.review import Review
+
+
 class ReviewService:
     """Business logic for reviews and trust scores."""
 
@@ -45,10 +48,8 @@ class ReviewService:
 
     async def _recalculate_item_rating(self, item_id: UUID) -> None:
         stmt = (
-            select(func.avg(Item.reviews.property.mapper.class_.rating), func.count(Item.reviews.property.mapper.class_.id))
-            .select_from(Item)
-            .join(Item.reviews)
-            .where(Item.id == item_id)
+            select(func.avg(Review.rating), func.count(Review.id))
+            .where(Review.item_id == item_id)
         )
         res = await self.db.execute(stmt)
         avg_rating, count = res.first() or (None, 0)
@@ -60,10 +61,8 @@ class ReviewService:
 
     async def _recalculate_user_trust(self, user_id: UUID) -> None:
         stmt = (
-            select(func.avg(User.reviews_received.property.mapper.class_.rating), func.count(User.reviews_received.property.mapper.class_.id))
-            .select_from(User)
-            .join(User.reviews_received)
-            .where(User.id == user_id)
+            select(func.avg(Review.rating), func.count(Review.id))
+            .where(Review.target_user_id == user_id)
         )
         res = await self.db.execute(stmt)
         avg_rating, count = res.first() or (None, 0)
@@ -84,11 +83,17 @@ class ReviewService:
         author_role: UserRole,
         payload: ReviewCreate,
     ) -> ReviewRead:
+        booking = await self.db.get(Booking, payload.booking_id)
+        if not booking:
+            raise LookupError("Booking not found")
+
+        target_user_id = booking.owner_id if author_id == booking.renter_id else booking.renter_id
+
         await self._ensure_booking_reviewable(
             booking_id=payload.booking_id,
             author_id=author_id,
             item_id=payload.item_id,
-            target_user_id=payload.target_user_id,
+            target_user_id=target_user_id,
         )
 
         review = await self.reviews.create(
@@ -97,12 +102,12 @@ class ReviewService:
             item_id=payload.item_id,
             booking_id=payload.booking_id,
             author_id=author_id,
-            target_user_id=payload.target_user_id,
+            target_user_id=target_user_id,
         )
 
         # Recalculate aggregates
         await self._recalculate_item_rating(payload.item_id)
-        await self._recalculate_user_trust(payload.target_user_id)
+        await self._recalculate_user_trust(target_user_id)
 
         await self.db.commit()
         await self.db.refresh(review)
@@ -110,15 +115,19 @@ class ReviewService:
 
     async def list_item_reviews(self, item_id: UUID, skip: int, limit: int) -> ReviewListResponse:
         total, reviews = await self.reviews.list_for_item(item_id=item_id, skip=skip, limit=limit)
+        review_models = [ReviewRead.model_validate(r) for r in reviews]
         return ReviewListResponse(
             total=total,
-            reviews=[ReviewRead.model_validate(r) for r in reviews],
+            reviews=review_models,
+            items=review_models,
         )
 
     async def list_user_reviews(self, user_id: UUID, skip: int, limit: int) -> ReviewListResponse:
         total, reviews = await self.reviews.list_for_user(user_id=user_id, skip=skip, limit=limit)
+        review_models = [ReviewRead.model_validate(r) for r in reviews]
         return ReviewListResponse(
             total=total,
-            reviews=[ReviewRead.model_validate(r) for r in reviews],
+            reviews=review_models,
+            items=review_models,
         )
 

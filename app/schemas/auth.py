@@ -48,12 +48,16 @@ class RefreshTokenRequest(BaseModel):
 class AuthenticatedUser(BaseModel):
     id: UUID
     email: EmailStr
-    phone: str
-    city: str
-    full_name: str | None
+    phone: str | None = None
+    city: str | None = None
+    full_name: str | None = None
+    avatar_url: str | None = None
     role: UserRole
     is_active: bool
     is_verified: bool
+    avg_rating: float | None = 5.0
+    rating_count: int = 0
+    trust_score: int = 100
     last_login_at: datetime | None = None
 
     model_config = {"from_attributes": True}

@@ -152,6 +152,27 @@ class BookingService:
             items=[BookingRead.model_validate(b) for b in bookings],
         )
 
+    async def list_bookings(
+        self,
+        skip: int = 0,
+        limit: int = 20,
+        renter_id: UUID | None = None,
+        owner_id: UUID | None = None,
+        item_id: UUID | None = None,
+    ) -> BookingListResponse:
+        total, bookings = await self.bookings.list_bookings(
+            renter_id=renter_id,
+            owner_id=owner_id,
+            item_id=item_id,
+            skip=skip,
+            limit=limit,
+        )
+        return BookingListResponse(
+            total=total,
+            items=[BookingRead.model_validate(b) for b in bookings],
+        )
+
+
     async def get_booking(
         self,
         *,

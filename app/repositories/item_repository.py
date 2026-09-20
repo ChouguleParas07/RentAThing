@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import Select, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.item import Item
 
@@ -14,7 +15,7 @@ class ItemRepository:
         self.session = session
 
     async def get_by_id(self, item_id: UUID) -> Item | None:
-        stmt = select(Item).where(Item.id == item_id)
+        stmt = select(Item).options(selectinload(Item.category)).where(Item.id == item_id)
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
@@ -56,7 +57,7 @@ class ItemRepository:
         total = int(total_res.scalar_one() or 0)
 
         # Page
-        stmt = base_stmt.order_by(Item.created_at.desc()).offset(skip).limit(limit)
+        stmt = base_stmt.options(selectinload(Item.category)).order_by(Item.created_at.desc()).offset(skip).limit(limit)
         res = await self.session.execute(stmt)
         items = res.scalars().all()
         return total, items
