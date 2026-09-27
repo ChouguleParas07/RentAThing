@@ -56,8 +56,8 @@ class AuthenticatedUser(BaseModel):
     is_active: bool
     is_verified: bool
     avg_rating: float | None = 5.0
-    rating_count: int = 0
-    trust_score: int = 100
+    rating_count: int | None = 0
+    trust_score: int | None = 100
     last_login_at: datetime | None = None
 
     model_config = {"from_attributes": True}

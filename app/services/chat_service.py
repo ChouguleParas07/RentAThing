@@ -52,7 +52,7 @@ class ChatService:
         )
         return MessageListResponse(
             total=total,
-            messages=[MessageRead.model_validate(m) for m in messages],
+            items=[MessageRead.model_validate(m) for m in messages],
         )
 
     async def clear_conversation(self, *, user_id: UUID, conversation_id: str) -> int:
