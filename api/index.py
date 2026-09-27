@@ -1,13 +1,21 @@
 import traceback
-from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+import sys
 
 try:
     from app.main import app
 except Exception as e:
     err_msg = traceback.format_exc()
-    app = FastAPI()
     
-    @app.get("/{full_path:path}")
-    def catch_all(full_path: str):
-        return PlainTextResponse(f"Startup Error:\n{err_msg}", status_code=500)
+    async def app(scope, receive, send):
+        assert scope['type'] == 'http'
+        await send({
+            'type': 'http.response.start',
+            'status': 500,
+            'headers': [
+                (b'content-type', b'text/plain'),
+            ]
+        })
+        await send({
+            'type': 'http.response.body',
+            'body': f"Ultimate Failsafe Error:\n{err_msg}\n\nSys Path:\n{sys.path}".encode('utf-8')
+        })
