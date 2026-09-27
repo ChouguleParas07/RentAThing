@@ -139,17 +139,12 @@ async def upload_item_image(
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No filename")
     
-    ext = file.filename.split('.')[-1]
-    filename = f"{uuid.uuid4().hex}.{ext}"
+    import base64
     
-    # Save to uploads directory at root of project
-    import pathlib
-    uploads_dir = pathlib.Path(__file__).resolve().parent.parent.parent.parent / "uploads"
-    uploads_dir.mkdir(exist_ok=True)
+    contents = await file.read()
+    b64_content = base64.b64encode(contents).decode('utf-8')
+    mime_type = file.content_type or "image/jpeg"
+    data_url = f"data:{mime_type};base64,{b64_content}"
     
-    file_path = uploads_dir / filename
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    return {"url": f"http://localhost:8000/uploads/{filename}"}
+    return {"url": data_url}
 
