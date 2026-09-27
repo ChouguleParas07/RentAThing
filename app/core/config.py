@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_db_connection(cls, v: str | None) -> str | None:
         if v and isinstance(v, str):
+            # Remove any query parameters like ?sslmode=require which break asyncpg
+            if "?" in v:
+                v = v.split("?")[0]
             if v.startswith("postgres://"):
                 return v.replace("postgres://", "postgresql+asyncpg://", 1)
             elif v.startswith("postgresql://") and not v.startswith("postgresql+asyncpg://"):

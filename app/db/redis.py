@@ -70,8 +70,8 @@ def get_redis_client() -> Redis:
     return Redis.from_url(str(settings.redis_url), encoding="utf-8", decode_responses=True)
 
 
-redis_client: Redis = get_redis_client()
-mock_redis_client = MockRedis()
+redis_client = MockRedis()
+mock_redis_client = redis_client
 
 async def get_redis() -> AsyncIterator[Redis]:
     """FastAPI dependency for Redis. Falls back to MockRedis immediately to be independent."""
