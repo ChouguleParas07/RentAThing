@@ -36,11 +36,15 @@ from app.db.session import engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
     try:
-        async with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as conn:
-            await conn.execute(text("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'PENDING';"))
-            await conn.execute(text("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'REJECTED';"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;"))
+        # Prevent hanging Vercel boot process if DB is unreachable
+        async def init_db():
+            async with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as conn:
+                await conn.execute(text("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'PENDING';"))
+                await conn.execute(text("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'REJECTED';"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;"))
+        await asyncio.wait_for(init_db(), timeout=3.0)
     except Exception:
         pass
     yield
@@ -119,8 +123,13 @@ def create_app() -> FastAPI:
 
     # Serve uploads directory
     uploads_dir = Path(__file__).resolve().parent.parent / "uploads"
-    os.makedirs(uploads_dir, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+    try:
+        os.makedirs(uploads_dir, exist_ok=True)
+    except OSError:
+        pass # Vercel uses a read-only filesystem
+        
+    if uploads_dir.is_dir():
+        app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
     return app
 
