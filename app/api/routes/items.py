@@ -33,11 +33,11 @@ def get_item_service(
     "",
     response_model=ItemRead,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+    dependencies=[Depends(require_roles(UserRole.RENTER, UserRole.OWNER, UserRole.ADMIN))],
 )
 async def create_item(
     payload: ItemCreate,
-    current_user: Annotated[AuthenticatedUser, Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+    current_user: Annotated[AuthenticatedUser, Depends(require_roles(UserRole.RENTER, UserRole.OWNER, UserRole.ADMIN))],
     service: Annotated[ItemService, Depends(get_item_service)],
 ) -> ItemRead:
     try:
@@ -85,12 +85,12 @@ async def get_item(
 @router.patch(
     "/{item_id}",
     response_model=ItemRead,
-    dependencies=[Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+    dependencies=[Depends(require_roles(UserRole.RENTER, UserRole.OWNER, UserRole.ADMIN))],
 )
 async def update_item(
     item_id: UUID,
     payload: ItemUpdate,
-    current_user: Annotated[AuthenticatedUser, Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+    current_user: Annotated[AuthenticatedUser, Depends(require_roles(UserRole.RENTER, UserRole.OWNER, UserRole.ADMIN))],
     service: Annotated[ItemService, Depends(get_item_service)],
 ) -> ItemRead:
     try:
@@ -109,11 +109,11 @@ async def update_item(
 @router.delete(
     "/{item_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+    dependencies=[Depends(require_roles(UserRole.RENTER, UserRole.OWNER, UserRole.ADMIN))],
 )
 async def delete_item(
     item_id: UUID,
-    current_user: Annotated[AuthenticatedUser, Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+    current_user: Annotated[AuthenticatedUser, Depends(require_roles(UserRole.RENTER, UserRole.OWNER, UserRole.ADMIN))],
     service: Annotated[ItemService, Depends(get_item_service)],
 ) -> None:
     try:
@@ -131,7 +131,7 @@ async def delete_item(
 @router.post(
     "/images",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles(UserRole.OWNER, UserRole.ADMIN))],
+    dependencies=[Depends(require_roles(UserRole.RENTER, UserRole.OWNER, UserRole.ADMIN))],
 )
 async def upload_item_image(
     file: UploadFile = File(...),

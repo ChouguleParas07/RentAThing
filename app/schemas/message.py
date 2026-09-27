@@ -26,5 +26,5 @@ class MessageRead(BaseModel):
 
 class MessageListResponse(BaseModel):
     total: int
-    messages: list[MessageRead]
+    items: list[MessageRead]
 

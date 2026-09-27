@@ -139,10 +139,25 @@ async def websocket_endpoint(
         while True:
             data = await websocket.receive_json()
             print(f"[WS] Received message data: {data}", flush=True)
+            
+            event_type = data.get("type", "message")
+            
+            if event_type == "typing":
+                is_typing = data.get("is_typing", True)
+                await manager.broadcast(
+                    conversation_id,
+                    {
+                        "type": "typing",
+                        "sender_id": payload.sub,
+                        "is_typing": is_typing,
+                    }
+                )
+                continue
+                
             content = data.get("content")
             receiver_id_str = data.get("receiver_id")
             if not content or not receiver_id_str:
-                await websocket.send_json({"error": "content and receiver_id are required"})
+                await websocket.send_json({"error": "content and receiver_id are required for messages"})
                 continue
 
             try:
@@ -172,6 +187,7 @@ async def websocket_endpoint(
             await manager.broadcast(
                 conversation_id,
                 {
+                    "type": "message",
                     "id": str(msg.id),
                     "sender_id": str(msg.sender_id),
                     "receiver_id": str(msg.receiver_id),
