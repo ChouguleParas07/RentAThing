@@ -74,12 +74,6 @@ redis_client: Redis = get_redis_client()
 mock_redis_client = MockRedis()
 
 async def get_redis() -> AsyncIterator[Redis]:
-    """FastAPI dependency for Redis. Falls back to MockRedis if Redis is unreachable."""
-    try:
-        await redis_client.ping()
-        yield redis_client
-    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
-        logger.warning("Redis is unreachable. Using MockRedis in-memory store for local dev.")
-        yield mock_redis_client # type: ignore
-    finally:
-        pass
+    """FastAPI dependency for Redis. Falls back to MockRedis immediately to be independent."""
+    logger.warning("Using MockRedis in-memory store for Redis independence.")
+    yield mock_redis_client # type: ignore

@@ -102,12 +102,12 @@ class BookingService:
             cache_key = f"booking:idempotency:{idempotency_key}"
             await self.redis.set(cache_key, str(booking.id), ex=600)
 
-        # Fire-and-forget background tasks
-        send_booking_created_email.delay(str(booking.id))
+        # Fire-and-forget background tasks (Disabled for Celery-independence)
+        # send_booking_created_email.delay(str(booking.id))
         # Schedule a reminder shortly before the booking starts (e.g. 1 hour)
         days_until = (payload.start_date - date.today()).days
         countdown_seconds = max(0, int(days_until * 86400 - 3600))
-        send_booking_start_reminder.apply_async(args=[str(booking.id)], countdown=countdown_seconds)
+        # send_booking_start_reminder.apply_async(args=[str(booking.id)], countdown=countdown_seconds)
 
         return BookingRead.model_validate(booking)
 
@@ -240,8 +240,9 @@ class BookingService:
 
         # When booking is completed, schedule automatic deposit release processing
         if booking.status == BookingStatus.COMPLETED:
-            # e.g. auto-release after 24h if no disputes
-            auto_release_deposit.apply_async(args=[str(booking.id)], countdown=24 * 3600)
+            # e.g. auto-release after 24h if no disputes (Disabled for Celery-independence)
+            # auto_release_deposit.apply_async(args=[str(booking.id)], countdown=24 * 3600)
+            pass
 
         return BookingRead.model_validate(booking)
 
