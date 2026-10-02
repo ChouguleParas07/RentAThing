@@ -26,6 +26,7 @@ from app.schemas.auth import (
 )
 from app.schemas.user import UserCreate, UserUpdate
 from app.services.token_blacklist_service import blacklist_token, is_token_blacklisted
+from app.services.email import send_verification_email
 
 
 class AuthService:
@@ -58,16 +59,18 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(user)
 
-        # Simulate email verification code generation.
+        # Send email verification code.
         verification_code = str(secrets.randbelow(900000) + 100000)
         await self.redis.set(
             f"email_verification:{data.email.lower()}",
             verification_code,
             ex=self._verification_ttl_seconds,
         )
+        
+        send_verification_email(data.email, verification_code)
 
         return RegisterResponse(
-            message="Registration successful. Verify your email using the code."
+            message="Registration successful. We sent a verification code to your email."
         )
 
     async def verify_email(self, email: str, code: str) -> VerifyEmailResponse:

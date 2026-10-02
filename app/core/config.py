@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=15, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=7, alias="REFRESH_TOKEN_EXPIRE_DAYS")
 
+    # Email (Resend/SMTP)
+    email_from: str = Field(default="noreply@yourdomain.com", alias="EMAIL_FROM")
+    smtp_user: str | None = Field(default=None, alias="SMTP_USER")
+    smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
+    frontend_url: str = Field(default="http://localhost:5173", alias="FRONTEND_URL")
+
     # Database
     postgres_host: str = Field(default="db", alias="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, alias="POSTGRES_PORT")
